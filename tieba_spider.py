@@ -5,6 +5,7 @@ import os
 import time
 
 tieba_name=''
+request_time_out=1
 time_sleep=1
 
 class Scheduler():
@@ -44,7 +45,7 @@ class Spider():
         self.list_count=0
     def get_page_url(self):
         url='https://tieba.baidu.com/f?kw='+tieba_name
-        res=requests.get(url)
+        res=requests.get(url,timeout=request_time_out)
         #res.encoding='utf-8'
         text=res.text
         m=re.search(r'href=.*pn=(\d+).*尾页',text)
@@ -60,20 +61,24 @@ class Spider():
     def get_list_url(self):
         while True:
             url=self.scheduler_page.get_url()
-            if url is None or self.list_count>5:
+            if url is None or self.list_count>1:
                 break
             self.list_count+=1
             time.sleep(time_sleep)
-            res=requests.get(url)
+            try:
+                res=requests.get(url,timeout=request_time_out)
+            except:
+                continue
             text=res.text
             li=re.findall(r'href=\"(/p/\d+)',text)
             base_url='https://tieba.baidu.com'
             for i in li:
                self.scheduler_list.add_url(base_url+i)
                print('\b'*5,end='')
-               print('%5d'%self.scheduler_list.len_readly()) 
-        print(tieba_name+'共'+str(self.scheduler_list.len_readly())+'贴','url已经获取完成')
-        print('已下载图片%5d'%0,'剩余贴页面数量%5d'%self.scheduler_list.len_readly(),end='')
+               print('%5d'%self.scheduler_list.len_readly(),end='',flush=True)
+        print() 
+        print(tieba_name+'吧共'+str(self.scheduler_list.len_readly())+'贴','url已经获取完成')
+        print('已下载图片%5d'%0,'剩余贴页面数量%5d'%self.scheduler_list.len_readly(),end='',flush=True)
            
     def get_img_url(self):
         while True:
@@ -81,7 +86,10 @@ class Spider():
             if url is None:
                 return
             time.sleep(time_sleep)
-            res=requests.get(url)
+            try:
+                res=requests.get(url,timeout=request_time_out)
+            except:
+                continue
             text=res.text
             if 'pn=' not in url:
                 m=re.search(r'共<span class="red">(\d+)</span>页',text)
@@ -93,13 +101,16 @@ class Spider():
             li_img_url=re.findall(r'<img class="BDE_Image" pic_type="0".*?src="(.*?jpg)"',text)
             for i in li_img_url:
                 time.sleep(time_sleep)
-                res=requests.get(i)
+                try:
+                    res=requests.get(i,timeout=request_time_out)
+                except:
+                    continue
                 f=open('./img/'+str(self.img_name)+'.jpg','wb')
                 self.img_name+=1
                 f.write(res.content)
                 f.close()
-                print('\b'*23)
-                print('已下载图片%5d'%self.img_name,'剩余贴页面数量%5d'%self.scheduler_list.len_readly(),end='')
+                print('\b'*35,end='')
+                print('已下载图片%5d'%self.img_name,'剩余贴页面数量%5d'%self.scheduler_list.len_readly(),end='',flush=True)
            
     def start_spider(self):
         self.get_page_url()
